@@ -1,0 +1,46 @@
+name: Build and Release SBXTray
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install wxPython pyinstaller
+
+    - name: Build Executable with PyInstaller
+      run: |
+        pyinstaller --onefile --noconsole --name SBXTray main.py
+
+    - name: Prepare Release Asset
+      shell: bash
+      run: |
+        # Rename the output executable to include the release tag version
+        cp dist/SBXTray.exe SBXTray-${{ github.ref_name }}.exe
+
+    - name: Create GitHub Release and Upload Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: SBXTray-${{ github.ref_name }}.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
